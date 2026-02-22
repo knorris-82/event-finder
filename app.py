@@ -1,61 +1,107 @@
-from flask import Flask, render_template, request
-from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for
+import os
+import pandas as pd
+from datetime import datetime, timedelta
+
+# Optional: only if you want manual refresh
+from scrape_events import scrape_to_csv
 
 app = Flask(__name__)
 
-# Step A: sample data (swap this with your scraped results later)
-EVENTS = [
-    {"name": "Tech Happy Hour", "price": 0.00, "location": "Pittsburgh", "date": "2026-02-27", "time": "6:00 p.m."},
-    {"name": "Wine Festival", "price": 55.00, "location": "Pittsburgh", "date": "2026-03-01", "time": "2:00 p.m."},
-    {"name": "Mamma Mia!", "price": 120.00, "location": "Benedum Center", "date": "2026-03-05", "time": "7:30 p.m."},
-]
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+CSV_PATH = os.path.join(DATA_DIR, "pittsburgh_events.csv")
 
-def to_date(date_str):
-    """Convert 'YYYY-MM-DD' -> date object, or None."""
-    if not date_str:
+def load_events_df() -> pd.DataFrame:
+    # Always start with a consistent dataframe
+    cols = ["event_name", "date", "time", "location", "price", "source", "url"]
+
+    if not os.path.exists(CSV_PATH):
+        df = pd.DataFrame(columns=cols)
+    else:
+        df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
+        # Ensure any missing columns exist (just in case)
+        for c in cols:
+            if c not in df.columns:
+                df[c] = ""
+
+    # ALWAYS add date_dt (even if df is empty)
+    df["date_dt"] = pd.to_datetime(df["date"], errors="coerce")
+
+    return df
+
+def parse_price_to_number(price_str: str) -> float | None:
+    """
+    Converts '$12.50' -> 12.50, 'Free' -> 0.0, 'N/A' -> None
+    """
+    if not price_str:
         return None
-    return datetime.strptime(date_str, "%Y-%m-%d").date()
+    s = price_str.strip()
+    if s.lower() == "free":
+        return 0.0
+    if s.startswith("$"):
+        try:
+            return float(s.replace("$", "").replace(",", ""))
+        except ValueError:
+            return None
+    return None
 
-def to_float(num_str):
-    """Convert string to float, or None."""
-    if not num_str:
-        return None
-    return float(num_str)
+@app.route("/", methods=["GET"])
+def index():
+    df = load_events_df()
 
-@app.route("/")
-def home():
-    # Step B: read filters from the URL query string
-    start_date_str = request.args.get("start_date", "")
-    end_date_str = request.args.get("end_date", "")
-    max_price_str = request.args.get("max_price", "")
+    # Your user inputs (example)
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    max_price = request.args.get("max_price", "").strip()
 
-    start_date = to_date(start_date_str) if start_date_str else None
-    end_date = to_date(end_date_str) if end_date_str else None
-    max_price = to_float(max_price_str) if max_price_str else None
+    # Limit the selectable/searchable range to 2 weeks out (per your project direction)
+    today = datetime.now().date()
+    two_weeks_out = today + timedelta(days=14)
 
-    # Step C: filter events
-    filtered = []
-    for e in EVENTS:
-        e_date = to_date(e["date"])
-        e_price = e["price"]
+    # Filter by date range if provided
+    if start_date:
+        start_dt = pd.to_datetime(start_date, errors="coerce")
+        if pd.notna(start_dt):
+            df = df[df["date_dt"] >= start_dt]
 
-        if start_date and e_date < start_date:
-            continue
-        if end_date and e_date > end_date:
-            continue
-        if max_price is not None and e_price > max_price:
-            continue
+    if end_date:
+        end_dt = pd.to_datetime(end_date, errors="coerce")
+        if pd.notna(end_dt):
+            df = df[df["date_dt"] <= end_dt]
 
-        filtered.append(e)
+    # Enforce "no more than 2 weeks out" regardless of user input
+    df = df[df["date_dt"].dt.date <= two_weeks_out]
 
-    # Step D: render page with results + keep form values “sticky”
+    # Filter by max price if provided
+    if max_price:
+        try:
+            max_price_val = float(max_price)
+            df["price_num"] = df["price"].apply(parse_price_to_number)
+            df = df[df["price_num"].notna() & (df["price_num"] <= max_price_val)]
+        except ValueError:
+            pass
+
+    # Sort
+    df = df.sort_values(["date_dt", "time", "event_name"], na_position="last")
+
+    # Convert to records for template
+    events = df.drop(columns=["date_dt"], errors="ignore").to_dict(orient="records")
+
     return render_template(
         "index.html",
-        events=filtered,
-        start_date=start_date_str,
-        end_date=end_date_str,
-        max_price=max_price_str
+        events=events,
+        today=today.isoformat(),
+        two_weeks_out=two_weeks_out.isoformat(),
+        start_date=start_date,
+        end_date=end_date,
+        max_price=max_price
     )
+
+@app.route("/refresh", methods=["POST"])
+def refresh():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    scrape_to_csv(CSV_PATH)
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)

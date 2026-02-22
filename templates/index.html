@@ -58,11 +58,11 @@
           <tbody>
               {% for e in events %}
               <tr>
-                  <td>{{ e.name }}</td>
+                  <td>{{ e.event_name }}</td>
                   <td>{{ e.date }}</td>
                   <td>{{ e.time }}</td>
                   <td>{{ e.location }}</td>
-                  <td>${{ "%.2f"|format(e.price) }}</td>
+                  <td>${{ e.price }}</td>
               </tr>
               {% endfor %}
           </tbody>
