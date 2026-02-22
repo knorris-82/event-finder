@@ -13,6 +13,7 @@
       .main {width: 90%; margin: 10px auto;}
     </style>
 </head>
+
 <body>
   <div class="main">
 
@@ -20,6 +21,8 @@
     <p>Filter by date and price.</p>
 
     <form method="GET">
+      <input type="date" name="start_date" min="{{ today }}" max="{{ two_weeks_out }}" value="{{ start_date }}">
+      <input type="date" name="end_date"   min="{{ today }}" max="{{ two_weeks_out }}" value="{{ end_date }}">
         <div>
             <label>Start Date:</label>
             <input type="date" name="start_date" value="{{ start_date }}">
@@ -37,6 +40,9 @@
 
         <button type="submit">Filter</button>
     </form>
+<form action="/refresh" method="POST">
+  <button type="submit">Refresh live data</button>
+</form>
 
     {% if events %}
       <table>
