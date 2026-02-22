@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pittsburgh Event Finder</title>
+    <style>
+      table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+      th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
+      th { background: #C7B67E; }
+      form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+      label { display: block; font-size: 0.9rem; }
+      input { padding: 6px; }
+      button { padding: 6px 14px; cursor: pointer; background: #000; color: #C7B67E; font-weight: bold; }
+      .main {width: 90%; margin: 10px auto;}
+    </style>
+</head>
+<body>
+  <div class="main">
+
+    <h1>Find Events in Pittsburgh</h1>
+    <p>Filter by date and price.</p>
+
+    <form method="GET">
+        <div>
+            <label>Start Date:</label>
+            <input type="date" name="start_date" value="{{ start_date }}">
+        </div>
+
+        <div>
+            <label>End Date:</label>
+            <input type="date" name="end_date" value="{{ end_date }}">
+        </div>
+
+        <div>
+            <label>Max Price:</label>
+            <input type="number" name="max_price" step="0.01" value="{{ max_price }}">
+        </div>
+
+        <button type="submit">Filter</button>
+    </form>
+
+    {% if events %}
+      <table>
+          <thead>
+              <tr>
+                  <th>Event</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Location</th>
+                  <th>Price</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for e in events %}
+              <tr>
+                  <td>{{ e.name }}</td>
+                  <td>{{ e.date }}</td>
+                  <td>{{ e.time }}</td>
+                  <td>{{ e.location }}</td>
+                  <td>${{ "%.2f"|format(e.price) }}</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+    {% else %}
+      <p style="margin-top:16px;">No events match your filters.</p>
+    {% endif %}
+</div>
+<img src="static/images/skyline.png" alt="Pittsburgh skyline line art">
+<p><a href="https://www.freepik.com/free-vector/flat-pittsburgh-skyline-silhouette_48041426.htm">Skyline image by freepik</a></p>
+</body>
+</html>
