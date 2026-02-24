@@ -105,3 +105,8 @@ def refresh():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
