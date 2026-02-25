@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="main">
   <h1>Welcome to Burgh Event Planner</h1>
   <p>Choose an option:</p>
 
@@ -16,5 +17,6 @@
   {% if message %}
     <p><strong>{{ message }}</strong></p>
   {% endif %}
+</div>
 </body>
 </html>

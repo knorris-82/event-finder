@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="main">
   <h1>{{ title }}</h1>
 
   {% if help_text %}<p>{{ help_text }}</p>{% endif %}
@@ -34,5 +35,6 @@
   </form>
 
   <p><a href="/">Back to menu</a></p>
+</div>
 </body>
 </html>

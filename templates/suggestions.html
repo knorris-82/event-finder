@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="main">
   <h1>Top Event Suggestions</h1>
 
   {% if not plans %}
@@ -28,5 +29,6 @@
 
     <p><a href="/">Back to menu</a></p>
   {% endif %}
+</div>
 </body>
 </html>
