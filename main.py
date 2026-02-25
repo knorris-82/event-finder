@@ -224,26 +224,25 @@ def _load_df_for_web() -> pd.DataFrame:
 EVENTS_DF = None
 LOAD_ERROR = None
 
-@app.before_first_request
-def _init_data():
+def _get_events_df():
     global EVENTS_DF, LOAD_ERROR
+    if EVENTS_DF is not None or LOAD_ERROR is not None:
+        return EVENTS_DF
     try:
         EVENTS_DF = _load_df_for_web()
         LOAD_ERROR = None
     except Exception as exc:
         EVENTS_DF = None
         LOAD_ERROR = str(exc)
-
+    return EVENTS_DF
 
 
 @app.route("/")
 def web_menu():
-    # show any previous message then clear it
+    _get_events_df()
     message = session.pop("message", None)
-
     if LOAD_ERROR:
         message = f"Dataset load error: {LOAD_ERROR}"
-
     return render_template("menu.html", message=message)
 
 
