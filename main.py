@@ -221,18 +221,24 @@ def _load_df_for_web() -> pd.DataFrame:
     _, df = _load_dataset()
     return df
 
-try:
-    EVENTS_DF = _load_df_for_web()
-    LOAD_ERROR = None
-except Exception as exc:
-    EVENTS_DF = None
-    LOAD_ERROR = str(exc)
+EVENTS_DF = None
+LOAD_ERROR = None
+
+@app.before_first_request
+def _init_data():
+    global EVENTS_DF, LOAD_ERROR
+    try:
+        EVENTS_DF = _load_df_for_web()
+        LOAD_ERROR = None
+    except Exception as exc:
+        EVENTS_DF = None
+        LOAD_ERROR = str(exc)
 
 
 
 @app.route("/")
-def menu():
-    # show any previous message (like "no results") then clear it
+def web_menu():
+    # show any previous message then clear it
     message = session.pop("message", None)
 
     if LOAD_ERROR:
@@ -367,7 +373,7 @@ def wizard_max_results():
 def wizard_generate():
     if EVENTS_DF is None:
         session["message"] = "Dataset is not available yet."
-        return redirect(url_for("menu"))
+        return redirect(url_for("web_menu"))
 
     prefs = UserPreferences(
         budget=float(session.get("budget", 75.0)),
@@ -391,6 +397,10 @@ def wizard_generate():
 
     return redirect(url_for("suggestions"))
 
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
+
 
 @app.route("/suggestions")
 def suggestions():
@@ -402,7 +412,6 @@ def suggestions():
 def exit_app():
     session.clear()
     return render_template("menu.html", message="Session cleared. (This is the web version of Exit.)")
-
 
 if __name__ == "__main__":
     app.run(debug=True)
