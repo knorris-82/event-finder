@@ -1,12 +1,22 @@
 """
 Burgh Event Planner
-This file contains both the origional comand line interface written by dishengl 
-and the code to make it into a web application with flask wirtten by knorris2.
+
+This file contains:
+- Original CLI interface (dishengl)
+- Web application wrapper (knorris2)
+
+Design:
+- Shared "core" wrappers are used by BOTH CLI and web:
+    1) load_events_df()
+    2) generate_suggestions(df, prefs)
 """
 
 from __future__ import annotations
 
-# Origional Command Line Interface 
+# ============================================================
+# IMPORTS
+# ============================================================
+
 import os
 from pathlib import Path
 
@@ -17,6 +27,10 @@ from config import LATEST_OPTIONS_FILE, RECOMMENDATION_SAMPLE_FILE
 from recommend import UserPreferences, build_event_suggestions, format_plan, score_candidates
 from utils import ensure_project_directories
 
+
+# ============================================================
+# ORIGINAL / SHARED HELPERS (dishengl) - unchanged behavior
+# ============================================================
 
 REQUIRED_INPUT_COLUMNS = [
     "event_name",
@@ -44,6 +58,68 @@ def _load_local_env(env_path: Path = Path(".env")) -> None:
         if key and key not in os.environ:
             os.environ[key] = value
 
+
+def _ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
+    missing_columns = [column for column in REQUIRED_INPUT_COLUMNS if column not in df.columns]
+    if missing_columns:
+        raise ValueError("Dataset is missing required columns: " + ", ".join(missing_columns))
+
+    normalized = df[REQUIRED_INPUT_COLUMNS].copy()
+    normalized["name"] = normalized["event_name"].fillna("").astype(str).str.strip()
+
+    for column in ["source", "location", "price", "url", "date", "time"]:
+        normalized[column] = normalized[column].fillna("").astype(str).str.strip()
+
+    normalized = normalized[normalized["name"] != ""]
+    normalized = normalized.drop(columns=["event_name"])
+
+    normalized = normalized.drop_duplicates(
+        subset=["source", "name", "date", "time", "location"]
+    ).reset_index(drop=True)
+    return normalized
+
+
+def _load_dataset() -> tuple[Path, pd.DataFrame]:
+    if not RECOMMENDATION_SAMPLE_FILE.exists():
+        raise FileNotFoundError(
+            f"Latest processed dataset not found: {RECOMMENDATION_SAMPLE_FILE}\n"
+            "Run data collection first to generate latest event data."
+        )
+
+    df = pd.read_csv(RECOMMENDATION_SAMPLE_FILE)
+    df = _ensure_schema(df)
+
+    if LATEST_OPTIONS_FILE != RECOMMENDATION_SAMPLE_FILE:
+        LATEST_OPTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(LATEST_OPTIONS_FILE, index=False)
+
+    print(f"\nLoaded event dataset: {len(df)} records")
+    print(f"Working dataset source: {RECOMMENDATION_SAMPLE_FILE}")
+    return LATEST_OPTIONS_FILE, df
+
+
+# ============================================================
+# SHARED WEB-FRIENDLY WRAPPERS (knorris2)
+# These are called by BOTH CLI and WEB.
+# ============================================================
+
+def load_events_df() -> pd.DataFrame:
+    """Shared: prepare environment + load the cleaned dataset."""
+    ensure_project_directories()
+    _load_local_env()
+    _, df = _load_dataset()
+    return df
+
+
+def generate_suggestions(df: pd.DataFrame, prefs: UserPreferences) -> list[dict]:
+    """Shared: scoring + suggestion generation."""
+    scored = score_candidates(df, prefs)
+    return build_event_suggestions(scored, prefs)
+
+
+# ============================================================
+# CLI (dishengl) - unchanged interactive behavior
+# ============================================================
 
 def _ask_float(prompt: str, default: float) -> float:
     raw = input(f"{prompt} [{default}]: ").strip()
@@ -78,48 +154,6 @@ def _ask_optional_date(prompt: str) -> str | None:
         return None
 
     return pd.Timestamp(parsed).strftime("%Y-%m-%d")
-
-
-def _ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
-    missing_columns = [column for column in REQUIRED_INPUT_COLUMNS if column not in df.columns]
-    if missing_columns:
-        raise ValueError(
-            "Dataset is missing required columns: "
-            + ", ".join(missing_columns)
-        )
-
-    normalized = df[REQUIRED_INPUT_COLUMNS].copy()
-    normalized["name"] = normalized["event_name"].fillna("").astype(str).str.strip()
-
-    for column in ["source", "location", "price", "url", "date", "time"]:
-        normalized[column] = normalized[column].fillna("").astype(str).str.strip()
-
-    normalized = normalized[normalized["name"] != ""]
-    normalized = normalized.drop(columns=["event_name"])
-
-    normalized = normalized.drop_duplicates(
-        subset=["source", "name", "date", "time", "location"]
-    ).reset_index(drop=True)
-    return normalized
-
-
-def _load_dataset() -> tuple[Path, pd.DataFrame]:
-    if not RECOMMENDATION_SAMPLE_FILE.exists():
-        raise FileNotFoundError(
-            f"Latest processed dataset not found: {RECOMMENDATION_SAMPLE_FILE}\n"
-            "Run data collection first to generate latest event data."
-        )
-
-    df = pd.read_csv(RECOMMENDATION_SAMPLE_FILE)
-    df = _ensure_schema(df)
-
-    if LATEST_OPTIONS_FILE != RECOMMENDATION_SAMPLE_FILE:
-        LATEST_OPTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(LATEST_OPTIONS_FILE, index=False)
-
-    print(f"\nLoaded event dataset: {len(df)} records")
-    print(f"Working dataset source: {RECOMMENDATION_SAMPLE_FILE}")
-    return LATEST_OPTIONS_FILE, df
 
 
 def _print_menu() -> None:
@@ -169,15 +203,12 @@ def _print_generated_plans(generated_plans: list[dict]) -> None:
 
 
 def main_cli() -> None:
-    ensure_project_directories()
-    _load_local_env()
-
     print("=" * 30)
     print("Welcome to Burgh Event Planner")
     print("=" * 30)
     print("Loading latest event dataset...\n")
 
-    _, df = _load_dataset()
+    df = load_events_df()
     generated_plans: list[dict] = []
 
     while True:
@@ -186,8 +217,8 @@ def main_cli() -> None:
 
         if choice == "1":
             prefs = _collect_preferences()
-            scored = score_candidates(df, prefs)
-            generated_plans = build_event_suggestions(scored, prefs)
+            generated_plans = generate_suggestions(df, prefs)
+
             if not generated_plans:
                 print(
                     "\nNo suggestions matched current constraints. "
@@ -208,41 +239,51 @@ def main_cli() -> None:
             print("\nInvalid option. Please try again.")
 
 
-
-#Start Web Interface
+# ============================================================
+# WEB APP (knorris2)
+# ============================================================
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-change-me" 
+app.secret_key = "dev-secret-change-me"  # OK for class project
+
+_EVENTS_DF: pd.DataFrame | None = None
+_LOAD_ERROR: str | None = None
 
 
-def _load_df_for_web() -> pd.DataFrame:
-    ensure_project_directories()
-    _load_local_env()
-    _, df = _load_dataset()
-    return df
-
-EVENTS_DF = None
-LOAD_ERROR = None
-
-def _get_events_df():
-    global EVENTS_DF, LOAD_ERROR
-    if EVENTS_DF is not None or LOAD_ERROR is not None:
-        return EVENTS_DF
+def get_cached_df() -> pd.DataFrame | None:
+    """Web-only cache wrapper around load_events_df()."""
+    global _EVENTS_DF, _LOAD_ERROR
+    if _EVENTS_DF is not None or _LOAD_ERROR is not None:
+        return _EVENTS_DF
     try:
-        EVENTS_DF = _load_df_for_web()
-        LOAD_ERROR = None
+        _EVENTS_DF = load_events_df()
+        _LOAD_ERROR = None
     except Exception as exc:
-        EVENTS_DF = None
-        LOAD_ERROR = str(exc)
-    return EVENTS_DF
+        _EVENTS_DF = None
+        _LOAD_ERROR = str(exc)
+    return _EVENTS_DF
+
+
+def prefs_from_session() -> UserPreferences:
+    return UserPreferences(
+        budget=float(session.get("budget", 75.0)),
+        preferred_period=str(session.get("preferred_period", "any")),
+        max_results=int(session.get("max_results", 3)),
+        event_date=(session.get("event_date") or None) or None,
+    )
+
+
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
 
 
 @app.route("/")
 def web_menu():
-    _get_events_df()
+    get_cached_df()
     message = session.pop("message", None)
-    if LOAD_ERROR:
-        message = f"Dataset load error: {LOAD_ERROR}"
+    if _LOAD_ERROR:
+        message = f"Dataset load error: {_LOAD_ERROR}"
     return render_template("menu.html", message=message)
 
 
@@ -370,21 +411,13 @@ def wizard_max_results():
 
 @app.route("/wizard/generate")
 def wizard_generate():
-    if EVENTS_DF is None:
-        session["message"] = "Dataset is not available yet."
+    df = get_cached_df()
+    if df is None:
+        session["message"] = f"Dataset is not available yet: {_LOAD_ERROR}"
         return redirect(url_for("web_menu"))
 
-    prefs = UserPreferences(
-        budget=float(session.get("budget", 75.0)),
-        preferred_period=str(session.get("preferred_period", "any")),
-        max_results=int(session.get("max_results", 3)),
-        event_date=(session.get("event_date") or None) or None,
-    )
-
-    scored = score_candidates(EVENTS_DF, prefs)
-    plans = build_event_suggestions(scored, prefs)
-
-    # NOTE: cookie sessions can get large; this is fine if plans are small.
+    prefs = prefs_from_session()
+    plans = generate_suggestions(df, prefs)
     session["generated_plans"] = plans
 
     if not plans:
@@ -395,20 +428,6 @@ def wizard_generate():
         return redirect(url_for("web_menu"))
 
     return redirect(url_for("suggestions"))
-
-@app.get("/healthz")
-def healthz():
-    return "ok v2", 200
-
-@app.get("/debug")
-def debug():
-    _get_events_df()
-    return {
-        "events_loaded": EVENTS_DF is not None,
-        "load_error": LOAD_ERROR,
-        "sample_file": str(RECOMMENDATION_SAMPLE_FILE),
-        "latest_file": str(LATEST_OPTIONS_FILE),
-    }, 200
 
 
 @app.route("/suggestions")
@@ -422,5 +441,8 @@ def exit_app():
     session.clear()
     return render_template("menu.html", message="Session cleared. (This is the web version of Exit.)")
 
+
 if __name__ == "__main__":
     app.run(debug=True)
+    # To run the CLI locally instead, comment the line above and run:
+    # main_cli()
