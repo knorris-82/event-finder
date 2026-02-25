@@ -317,8 +317,8 @@ def wizard_date():
         if pd.isna(parsed):
             return render_template(
                 "step.html",
-                title="Event date (Choose a date in the next 10 days.)",
-                help_text="Pick a date or leave blank for any date.",
+                title="Event date (Optional)",
+                help_text="Pick a date in the next 10 days or leave blank for any date.",
                 input_type="date",
                 default=session.get("event_date", ""),
                 error="Invalid date; try again or leave blank.",
@@ -330,7 +330,7 @@ def wizard_date():
     return render_template(
         "step.html",
         title="Event date (optional)",
-        help_text="Leave blank for any date.",
+        help_text="Pick a date in the next 10 days or leave blank for any date.",
         input_type="date",
         default=session.get("event_date", ""),
     )
