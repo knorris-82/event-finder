@@ -398,7 +398,7 @@ def wizard_generate():
 
 @app.get("/healthz")
 def healthz():
-    return "ok", 200
+    return "ok v2", 200
 
 @app.get("/debug")
 def debug():
