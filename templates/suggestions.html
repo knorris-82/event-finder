@@ -1,50 +1,30 @@
-{% extends "base.html" %}
-{% block title %}Suggestions • Burgh Event Planner{% endblock %}
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Suggestions</title></head>
+<body>
+  <h1>Top Event Suggestions</h1>
 
-{% block content %}
-<div class="grid">
-  <section class="card results">
-    <div class="result-top">
-      <div>
-        <div class="pill">Your suggestions</div>
-        <div class="result-title" style="margin-top:8px;">Top Event Picks</div>
-      </div>
-      <div class="btn-row" style="margin:0;">
-        <a class="btn" href="{{ url_for('wizard_budget') }}">Try Again</a>
-        <a class="btn" href="{{ url_for('exit_app') }}">Reset</a>
-      </div>
-    </div>
+  {% if not plans %}
+    <p><strong>No generated suggestions available. Choose option 1 first.</strong></p>
+    <p><a href="/">Back to menu</a></p>
+  {% else %}
+    {% for plan in plans %}
+      <h2>{{ loop.index }}. {{ plan.plan_name }}</h2>
+      <p>Estimated price: ${{ "%.2f"|format(plan.total_estimated_cost) }}</p>
 
-    <div style="height:14px;"></div>
+      {% for stop in plan.stops %}
+        <p>
+          <strong>{{ stop.name }}</strong><br>
+          {% if stop.start_time %}When: {{ stop.start_time }}<br>{% endif %}
+          {% if stop.location %}Location: {{ stop.location }}<br>{% endif %}
+          {% if stop.source %}Source: {{ stop.source }}<br>{% endif %}
+          {% if stop.url %}<a href="{{ stop.url }}" target="_blank" rel="noopener">Link</a>{% endif %}
+        </p>
+      {% endfor %}
+      <hr>
+    {% endfor %}
 
-    {% if not plans %}
-      <p class="muted">No suggestions to show. Try the wizard again.</p>
-    {% else %}
-      <div class="grid">
-        {% for plan in plans %}
-          <div class="card result-card" style="grid-column: span 12;">
-            <div class="result-top">
-              <div class="result-title">{{ plan.name if plan.name is defined else plan.get("name","") }}</div>
-              <div class="pill">{{ plan.source if plan.source is defined else plan.get("source","") }}</div>
-            </div>
-
-            <div class="meta">
-              <div><strong>Date:</strong> {{ plan.date if plan.date is defined else plan.get("date","") }}</div>
-              <div><strong>Time:</strong> {{ plan.time if plan.time is defined else plan.get("time","") }}</div>
-              <div><strong>Location:</strong> {{ plan.location if plan.location is defined else plan.get("location","") }}</div>
-              <div><strong>Price:</strong> {{ plan.price if plan.price is defined else plan.get("price","") }}</div>
-            </div>
-
-            {% set url_val = plan.url if plan.url is defined else plan.get("url","") %}
-            {% if url_val %}
-              <div>
-                <a class="link" href="{{ url_val }}" target="_blank" rel="noopener">View event details →</a>
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  </section>
-</div>
-{% endblock %}
+    <p><a href="/">Back to menu</a></p>
+  {% endif %}
+</body>
+</html>
