@@ -392,7 +392,7 @@ def wizard_generate():
             "No suggestions matched current constraints. "
             "Try a different date, period, or higher budget."
         )
-        return redirect(url_for("menu"))
+        return redirect(url_for("web_menu"))
 
     return redirect(url_for("suggestions"))
 
