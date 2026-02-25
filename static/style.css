@@ -4,6 +4,7 @@
         background-repeat: no-repeat; 
         background-attachment: fixed; 
         background-position: bottom center;
+        min-height: 800px;
     }
     .main {
         padding: 40px; 
