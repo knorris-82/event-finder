@@ -1,15 +1,16 @@
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>{{ title }}</title></head>
-<body>
-  <h1>{{ title }}</h1>
+{% extends "base.html" %}
+{% block title %}{{ title }} • Burgh Event Planner{% endblock %}
 
-  {% if help_text %}<p>{{ help_text }}</p>{% endif %}
-  {% if error %}<p><strong>{{ error }}</strong></p>{% endif %}
+{% block content %}
+<div class="card">
+  <h2 style="margin:0 0 6px;">{{ title }}</h2>
+  {% if help_text %}<p class="muted" style="margin:0 0 14px;">{{ help_text }}</p>{% endif %}
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
 
-  <form method="post">
+  <form class="form" method="post">
     {% if input_type == "select" %}
-      <select name="value">
+      <label for="value">Choose one</label>
+      <select id="value" name="value">
         {% for opt in options %}
           <option value="{{ opt.value }}" {% if opt.value == default %}selected{% endif %}>
             {{ opt.label }}
@@ -17,20 +18,22 @@
         {% endfor %}
       </select>
     {% else %}
+      <label for="value">Your answer</label>
       <input
+        id="value"
         name="value"
         type="{{ input_type }}"
-        value="{{ default }}"
-        {% if min is not none %}min="{{ min }}"{% endif %}
-        {% if step is not none %}step="{{ step }}"{% endif %}
-        {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
-        autofocus
+        value="{{ default or '' }}"
+        placeholder="{{ placeholder or '' }}"
+        {% if min is defined %}min="{{ min }}"{% endif %}
+        {% if step is defined %}step="{{ step }}"{% endif %}
       />
     {% endif %}
 
-    <button type="submit">Next</button>
+    <div class="btn-row">
+      <button class="btn primary" type="submit">Continue</button>
+      <a class="btn" href="{{ url_for('web_menu') }}">Cancel</a>
+    </div>
   </form>
-
-  <p><a href="/">Back to menu</a></p>
-</body>
-</html>
+</div>
+{% endblock %}

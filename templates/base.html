@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Burgh Event Planner{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <a href="{{ url_for('web_menu') }}" class="brand-link">Burgh Event Planner</a>
+        <span class="tagline">Find something fun in Pittsburgh</span>
+      </div>
+      <nav class="nav">
+        <a href="{{ url_for('web_menu') }}">Home</a>
+        <a href="{{ url_for('wizard_budget') }}">Start Wizard</a>
+        <a href="{{ url_for('exit_app') }}">Reset</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container main">
+    {% if message %}
+      <div class="alert">{{ message }}</div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>© {{ 2026 }} Burgh Event Planner</div>
+      <div class="muted">Built for class • Flask + Render</div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,18 +1,18 @@
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Burgh Event Planner</title></head>
-<body>
-  <h1>Welcome to Burgh Event Planner</h1>
-  <p>Choose an option:</p>
+{% extends "base.html" %}
+{% block title %}Home • Burgh Event Planner{% endblock %}
 
-  <ol>
-    <li><a href="/wizard/budget">Generate event suggestions</a></li>
-    <li><a href="/suggestions">View generated suggestions</a></li>
-    <li><a href="/exit">Exit</a></li>
-  </ol>
-
-  {% if message %}
-    <p><strong>{{ message }}</strong></p>
-  {% endif %}
-</body>
-</html>
+{% block content %}
+<div class="grid">
+  <section class="card hero">
+    <h1>Plan a night out 🎉</h1>
+    <p>
+      Answer a few quick questions and we’ll recommend events based on your budget,
+      date, and preferred time of day.
+    </p>
+    <div class="btn-row">
+      <a class="btn primary" href="{{ url_for('wizard_budget') }}">Start the Wizard</a>
+      <a class="btn" href="{{ url_for('exit_app') }}">Reset</a>
+    </div>
+  </section>
+</div>
+{% endblock %}
