@@ -2,20 +2,16 @@
 Burgh Event Planner
 
 This file contains:
-- Original CLI interface (dishengl)
+- Original command line interface (dishengl)
 - Web application wrapper (knorris2)
-
-Design:
-- Shared "core" wrappers are used by BOTH CLI and web:
+- Shared "core" wrappers are used by command line and web interfaces:
     1) load_events_df()
     2) generate_suggestions(df, prefs)
 """
 
 from __future__ import annotations
 
-# ============================================================
-# IMPORTS
-# ============================================================
+# imports
 
 import os
 from pathlib import Path
@@ -28,9 +24,8 @@ from recommend import UserPreferences, build_event_suggestions, format_plan, sco
 from utils import ensure_project_directories
 
 
-# ============================================================
-# ORIGINAL / SHARED HELPERS (dishengl) - unchanged behavior
-# ============================================================
+
+# Original command line interface (dishengl)
 
 REQUIRED_INPUT_COLUMNS = [
     "event_name",
@@ -44,7 +39,6 @@ REQUIRED_INPUT_COLUMNS = [
 
 
 def _load_local_env(env_path: Path = Path(".env")) -> None:
-    """Load local environment variables from .env if present."""
     if not env_path.exists():
         return
 
@@ -98,13 +92,9 @@ def _load_dataset() -> tuple[Path, pd.DataFrame]:
     return LATEST_OPTIONS_FILE, df
 
 
-# ============================================================
-# SHARED WEB-FRIENDLY WRAPPERS (knorris2)
-# These are called by BOTH CLI and WEB.
-# ============================================================
+# web-friendly wrappers (knorris2)
 
 def load_events_df() -> pd.DataFrame:
-    """Shared: prepare environment + load the cleaned dataset."""
     ensure_project_directories()
     _load_local_env()
     _, df = _load_dataset()
@@ -112,14 +102,12 @@ def load_events_df() -> pd.DataFrame:
 
 
 def generate_suggestions(df: pd.DataFrame, prefs: UserPreferences) -> list[dict]:
-    """Shared: scoring + suggestion generation."""
     scored = score_candidates(df, prefs)
     return build_event_suggestions(scored, prefs)
 
 
-# ============================================================
-# CLI (dishengl) - unchanged interactive behavior
-# ============================================================
+
+# Original command line interface (dishengl)
 
 def _ask_float(prompt: str, default: float) -> float:
     raw = input(f"{prompt} [{default}]: ").strip()
@@ -239,19 +227,16 @@ def main_cli() -> None:
             print("\nInvalid option. Please try again.")
 
 
-# ============================================================
-# WEB APP (knorris2)
-# ============================================================
+# Web application (knorris2)
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-change-me"  # OK for class project
+app.secret_key = "dev-secret-change-me"  
 
 _EVENTS_DF: pd.DataFrame | None = None
 _LOAD_ERROR: str | None = None
 
 
 def get_cached_df() -> pd.DataFrame | None:
-    """Web-only cache wrapper around load_events_df()."""
     global _EVENTS_DF, _LOAD_ERROR
     if _EVENTS_DF is not None or _LOAD_ERROR is not None:
         return _EVENTS_DF
@@ -444,5 +429,5 @@ def exit_app():
 
 if __name__ == "__main__":
     app.run(debug=True)
-    # To run the CLI locally instead, comment the line above and run:
+    # To run the command line locally, comment the line above and run:
     # main_cli()
