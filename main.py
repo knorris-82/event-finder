@@ -400,6 +400,16 @@ def wizard_generate():
 def healthz():
     return "ok", 200
 
+@app.get("/debug")
+def debug():
+    _get_events_df()
+    return {
+        "events_loaded": EVENTS_DF is not None,
+        "load_error": LOAD_ERROR,
+        "sample_file": str(RECOMMENDATION_SAMPLE_FILE),
+        "latest_file": str(LATEST_OPTIONS_FILE),
+    }, 200
+
 
 @app.route("/suggestions")
 def suggestions():
