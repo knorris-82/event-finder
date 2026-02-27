@@ -12,7 +12,7 @@
         max-width: 90%; 
         margin: 0 auto 0; 
         font-family: Verdana, sans-serif; 
-        font-size: 16px;
+        font-size: 1rem;
     }
     form { 
         display: flex; 
@@ -22,7 +22,7 @@
     }
     label { 
         display: block; 
-        font-size: 16px;
+        font-size: 1rem;
     }
     input { 
         padding: 6px; 
