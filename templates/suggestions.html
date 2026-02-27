@@ -29,8 +29,8 @@
           <strong>{{ stop.name }}</strong><br>
           {% if stop.start_time %}When: {{ stop.start_time }}<br>{% endif %}
           {% if stop.location %}Location: {{ stop.location }}<br>{% endif %}
-          {% if stop.source %}Source: {{ stop.source }}<br>{% endif %}
-          {% if stop.url %}<a href="{{ stop.url }}" target="_blank" rel="noopener" class="button">Event Link</a>{% endif %}
+          {% if stop.source %}Source: {{ stop.source }}<br>{% endif %}<br><p>
+          {% if stop.url %}<a href="{{ stop.url }}" target="_blank" rel="noopener" class="button">Event Link</a>{% endif %}</p>
         </p>
       {% endfor %}
       <hr>
